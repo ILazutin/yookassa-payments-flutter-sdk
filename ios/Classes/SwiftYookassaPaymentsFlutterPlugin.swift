@@ -61,8 +61,6 @@ public class SwiftYookassaPaymentsFlutterPlugin: NSObject, FlutterPlugin {
           paymentMethod = .yooMoney
         case "sberbank":
           paymentMethod = .sberbank
-        case "applePay":
-          paymentMethod = .applePay
         case "sbp":
           paymentMethod = .sbp
         default: break
@@ -157,6 +155,20 @@ extension FlutterViewController: TokenizationModuleOutput {
         }
         result("{\"paymentMethodType\": \"\(paymentMethodType.rawValue)\"}")
     }
+
+    public func didFailConfirmation(error: YooKassaPaymentsError?) {
+        DispatchQueue.main.async { [weak self] in
+            if let controller = yoomoneyController {
+                controller.dismiss(animated: true)
+            }
+        }
+        guard let result = flutterResult else { return }
+        if let error = error {
+            result("{\"status\":\"error\", \"error\": \"\(error.localizedDescription)\"}")
+        } else {
+            result("{\"status\":\"canceled\"}")
+        }
+    }
 }
 
 struct HostParameters: Codable, Equatable {
@@ -208,7 +220,6 @@ extension TokenizationModuleInputData: Decodable {
         case gatewayId = "gatewayId"
         case tokenizationSettings = "tokenizationSettings"
         case testModeSettings = "testModeSettings"
-        case applePayMerchantIdentifier = "applePayMerchantIdentifier"
         case returnUrl = "returnUrl"
         case isLoggingEnabled = "isLoggingEnabled"
         case userPhoneNumber = "userPhoneNumber"
@@ -233,7 +244,6 @@ extension TokenizationModuleInputData: Decodable {
         let tokenizationSettings = TokenizationSettings(paymentMethodTypes: settings.paymentMethodTypes)
         
         let testModeSettings = try? values.decode(TestModeSettings.self, forKey: .testModeSettings)
-        let applePayMerchantIdentifier = try? values.decode(String.self, forKey: .applePayMerchantIdentifier)
         let returnUrl = try? values.decode(String.self, forKey: .returnUrl)
         let isLoggingEnabled = try values.decode(Bool.self, forKey: .isLoggingEnabled)
         let userPhoneNumber = try? values.decode(String.self, forKey: .userPhoneNumber)
@@ -266,7 +276,6 @@ extension TokenizationModuleInputData: Decodable {
             gatewayId: gatewayId,
             tokenizationSettings: tokenizationSettings,
             testModeSettings: testModeSettings,
-            applePayMerchantIdentifier: applePayMerchantIdentifier,
             returnUrl: returnUrl,
             isLoggingEnabled: isLoggingEnabled,
             userPhoneNumber: userPhoneNumber,
@@ -372,8 +381,6 @@ extension TokenizationSettings: Decodable {
                 paymentTypes.insert(.yooMoney)
             case "PaymentMethod.sberbank":
                 paymentTypes.insert(.sberbank)
-            case "PaymentMethod.applePay":
-                paymentTypes.insert(.applePay)
             case "PaymentMethod.sbp":
                 paymentTypes.insert(.sbp)
             default: break
